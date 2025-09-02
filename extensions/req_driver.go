@@ -8,8 +8,16 @@ import (
 	"github.com/gocolly/colly/v2"
 )
 
-type ReqDriver struct {
+type reqDriver struct {
 	LimitRules []*colly.LimitRule
 	Client     *req.Client
 	lock       *sync.RWMutex
+}
+
+func NewReqBackend() *reqDriver {
+	client := req.NewClient()
+
+	return &reqDriver{
+		Client: client,
+	}
 }
