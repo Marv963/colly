@@ -4,12 +4,14 @@ import (
 	"fmt"
 
 	"github.com/gocolly/colly/v2"
+	"github.com/gocolly/colly/v2/extensions"
 )
 
 func main() {
 	// Instantiate default collector
 	c := colly.NewCollector(
 		colly.AllowedDomains("hackerspaces.org", "wiki.hackerspaces.org"),
+		colly.SetHTTPDriver(extensions.NewReqBackend()),
 	)
 
 	// On every a element which has href attribute call callback

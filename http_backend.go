@@ -42,9 +42,9 @@ type HTTPDriver interface {
 	// GetMatchingRule returns the LimitRule for a given domain
 	GetMatchingRule(domain string) *LimitRule
 	// Cache caches the
-	Cache(request *http.Request, bodySize int, checkRequestHeadersFunc checkRequestHeadersFunc, checkResponseHeadersFunc checkResponseHeadersFunc, cacheDir string, cacheExpiration time.Duration) (*Response, error)
+	Cache(request *http.Request, bodySize int, checkRequestHeadersFunc CheckRequestHeadersFunc, checkResponseHeadersFunc CheckResponseHeadersFunc, cacheDir string, cacheExpiration time.Duration) (*Response, error)
 	// Do processes the http.Request
-	Do(request *http.Request, bodySize int, checkRequestHeadersFunc checkRequestHeadersFunc, checkResponseHeadersFunc checkResponseHeadersFunc) (*Response, error)
+	Do(request *http.Request, bodySize int, checkRequestHeadersFunc CheckRequestHeadersFunc, checkResponseHeadersFunc CheckResponseHeadersFunc) (*Response, error)
 	// Limit adds a LimitRule
 	Limit(rule *LimitRule) error
 	// Limits adds multiple LimitRules
@@ -78,8 +78,8 @@ type httpBackend struct {
 }
 
 type (
-	checkResponseHeadersFunc func(req *http.Request, statusCode int, header http.Header) bool
-	checkRequestHeadersFunc  func(req *http.Request) bool
+	CheckResponseHeadersFunc func(req *http.Request, statusCode int, header http.Header) bool
+	CheckRequestHeadersFunc  func(req *http.Request) bool
 )
 
 // LimitRule provides connection restrictions for domains.
@@ -173,7 +173,7 @@ func (h *httpBackend) GetMatchingRule(domain string) *LimitRule {
 	return nil
 }
 
-func (h *httpBackend) Cache(request *http.Request, bodySize int, checkRequestHeadersFunc checkRequestHeadersFunc, checkResponseHeadersFunc checkResponseHeadersFunc, cacheDir string, cacheExpiration time.Duration) (*Response, error) {
+func (h *httpBackend) Cache(request *http.Request, bodySize int, checkRequestHeadersFunc CheckRequestHeadersFunc, checkResponseHeadersFunc CheckResponseHeadersFunc, cacheDir string, cacheExpiration time.Duration) (*Response, error) {
 	if cacheDir == "" || request.Method != "GET" || request.Header.Get("Cache-Control") == "no-cache" {
 		return h.Do(request, bodySize, checkRequestHeadersFunc, checkResponseHeadersFunc)
 	}
@@ -218,7 +218,7 @@ func (h *httpBackend) Cache(request *http.Request, bodySize int, checkRequestHea
 	return resp, os.Rename(filename+"~", filename)
 }
 
-func (h *httpBackend) Do(request *http.Request, bodySize int, checkRequestHeadersFunc checkRequestHeadersFunc, checkResponseHeadersFunc checkResponseHeadersFunc) (*Response, error) {
+func (h *httpBackend) Do(request *http.Request, bodySize int, checkRequestHeadersFunc CheckRequestHeadersFunc, checkResponseHeadersFunc CheckResponseHeadersFunc) (*Response, error) {
 	r := h.GetMatchingRule(request.URL.Host)
 	if r != nil {
 		r.waitChan <- true
@@ -292,10 +292,6 @@ func (h *httpBackend) Limits(rules []*LimitRule) error {
 	return nil
 }
 
-func (h *httpBackend) SetClient(client *http.Client) {
-	h.Client = client
-}
-
 func (h *httpBackend) Jar(j http.CookieJar) {
 	h.Client.Jar = j
 }
@@ -347,4 +343,8 @@ func (h *httpBackend) Cookies(url *url.URL) []*http.Cookie {
 
 func (h *httpBackend) CheckRedirect(f func(req *http.Request, via []*http.Request) error) {
 	h.Client.CheckRedirect = f
+}
+
+func (h *httpBackend) SetClient(client *http.Client) {
+	h.Client = client
 }
