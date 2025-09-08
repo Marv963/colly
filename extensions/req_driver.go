@@ -75,6 +75,8 @@ func (h *reqDriver) GetJar() http.CookieJar {
 }
 
 func (h *reqDriver) Transport(t http.RoundTripper) {
+	client := h.Client.GetClient()
+	client.Transport = t
 }
 
 func (h *reqDriver) Timeout(t time.Duration) {
@@ -86,9 +88,27 @@ func (h *reqDriver) GetTimeout() time.Duration {
 }
 
 func (h *reqDriver) Proxy(pf colly.ProxyFunc) {
+	client := h.Client.GetClient()
+	if tr, ok := client.Transport.(*http.Transport); ok && tr != nil {
+		tr.Proxy = pf
+		tr.DisableKeepAlives = true
+		client.Transport = tr
+	} else {
+		client.Transport = &http.Transport{
+			Proxy:             pf,
+			DisableKeepAlives: true,
+		}
+	}
 }
 
 func (h *reqDriver) SetCookies(url *url.URL, cookies []*http.Cookie) error {
+	client := h.Client.GetClient()
+	if client.Jar == nil {
+		return colly.ErrNoCookieJar
+	}
+
+	client.Jar.SetCookies(url, cookies)
+
 	return nil
 }
 
